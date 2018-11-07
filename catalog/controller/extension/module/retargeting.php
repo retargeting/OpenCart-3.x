@@ -327,7 +327,6 @@ class ControllerExtensionModuleRetargeting extends Controller {
             $productDetails     = $this->model_catalog_product->getProduct($productId);
             $productCategories  = $this->db->query("SELECT * FROM " . DB_PREFIX . "product_to_category WHERE product_id = '" . (int)$productId . "'");
             $productCategories  = $productCategories->rows;
-            $decodedProductDetailsName = htmlspecialchars_decode($productDetails['name']);
             $decodedProductUrl  = htmlspecialchars_decode($productUrl);
             if ($this->request->server['HTTPS']) {
         			$data['shop_url'] = $this->config->get('config_ssl');
@@ -346,7 +345,7 @@ class ControllerExtensionModuleRetargeting extends Controller {
 
                 _ra.sendProductInfo = {
                     'id': $productId,
-                    'name': '{$decodedProductDetailsName}',
+                    'name': '" . htmlspecialchars($productDetails['name'], ENT_QUOTES) . "',
                     'url': '{$decodedProductUrl}',
                     'img': '{$data['shop_url']}image/{$productDetails['image']}',
                     'price': '".round(

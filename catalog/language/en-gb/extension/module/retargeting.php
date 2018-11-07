@@ -4,4 +4,4 @@
  */
 
 // Heading
-$_['heading_title'] = 'Retargeting Tracker';
+$_['heading_title'] = 'Retargeting Tracker v3.1.0';
