@@ -193,8 +193,8 @@ class ControllerExtensionModuleRetargeting extends Controller
             'start' => $start,
             'limit' => $limit
         ];
-
-        $baseUrl = (new Configs($this))->getBaseUrl();
+        $baseUrl = $this->config->get('config_url');
+        /* $baseUrl = (new Configs($this))->getBaseUrl(); */
 
         $productsLoop = true;
 
@@ -255,57 +255,24 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getManufacturedId(),
                     $this->getProductId()))->getProductImages((int)$product['product_id'], $baseUrl);
 
-                $extraData = [
-                    'media_gallery' => [],
-                    'variations' => [],
-                    'categories' => []
-                ];
+                $price = number_format($productPrice, 2, '.', '');
+                $promoPrice = $productSpecialPrice > 0 ? number_format($productSpecialPrice, 2, '.', '') : $price;
 
-                $productCategories = $this->model_catalog_product->getCategories($product['product_id']);
-
-                foreach ($productCategories as $category) {
-
-                    $fullCategory = $this->model_catalog_category->getCategory($category['category_id']);
-                    $extraData['categories'][$category['category_id']] = $fullCategory['name'];
-                }
-
-                $productImages = $this->model_catalog_product->getProductImages($product['product_id']);
-
-                foreach ($productImages as $image) {
-
-                    $extraData['media_gallery'][] = $this->config->get('config_url') . 'image/' . str_replace(' ', '%20', $image['image']);
-                }
+                $extraData = $this->getExtraData([
+                    'categories' => $this->model_catalog_product->getCategories($product['product_id']),
+                    'variations' => $this->model_catalog_product->getProductOptions($product['product_id']),
+                    'product_id' => $product['product_id'],
+                    'base_url'   => $baseUrl,
+                    'price' => $price,
+                    'promoPrice' => $promoPrice,
+                ]);
 
                 if (!empty($product['image'])) {
                     $productImage = $baseUrl . 'image/' . $product['image'];
                 } else if (!empty($this->config->get('config_logo'))) {
-                    $productImage = $this->config->get('config_url') . 'image/' . $this->config->get('config_logo');
+                    $productImage = $baseUrl . 'image/' . $this->config->get('config_logo');
                 } else {
-                    $productImage = $this->config->get('config_url') . 'image/no_image-40x40.png';
-                }
-
-                $price = number_format($productPrice, 2, '.', '');
-                $promoPrice = $productSpecialPrice > 0 ? number_format($productSpecialPrice, 2, '.', '') : $price;
-
-                $options = $this->model_catalog_product->getProductOptions($product['product_id']);
-
-                foreach($options as $optionValue) {
-
-                    foreach ($optionValue['product_option_value'] as $option) {
-
-                        if (empty($option['price'])) {
-                            continue;
-                        }
-
-                        $extraData['variations'][] = [
-                            'code' => $option['name'],
-                            'price' => $option['price_prefix'] === '+' ? $price + $option['price'] : $price - $option['price'],
-                            'sale_price' => $option['price_prefix'] === '+' ? $promoPrice + $option['price'] : $promoPrice - $option['price'],
-                            'stock' => $option['quantity']
-                        ];
-
-                    }
-
+                    $productImage = $baseUrl. 'image/no_image-40x40.png';
                 }
 
                 $setupProduct =  new \RetargetingSDK\Product();
@@ -476,12 +443,36 @@ class ControllerExtensionModuleRetargeting extends Controller
         return [
           'margin' => null,
           'categories' => $this->refactorCategories($params['categories']),
-          'media gallery' => $this->getImagesOfProduct($params['product_id'], $params['base_url']),
-          'in_supplier_stock' => null,
-          'variations' => []
+          'media_gallery' => $this->getImagesOfProduct($params['product_id'], $params['base_url']),
+          'variations' => $this->refactorVariations($params['variations'], $params['price'], $params['promoPrice']),
+          'in_supplier_stock' => null
         ];
 
 
+    }
+
+    public function refactorVariations($options, $price = 0, $promoPrice = 0) {
+        $variations = [];
+
+        foreach($options as $optionValue) {
+
+            foreach ($optionValue['product_option_value'] as $option) {
+
+                if (empty($option['price'])) {
+                    continue;
+                }
+
+                $variations[] = [
+                    'code' => $option['name'],
+                    'price' => $option['price_prefix'] === '+' ? $price + $option['price'] : $price - $option['price'],
+                    'sale_price' => $option['price_prefix'] === '+' ? $promoPrice + $option['price'] : $promoPrice - $option['price'],
+                    'stock' => $option['quantity']
+                ];
+
+            }
+
+        }
+        return $variations; 
     }
 
     /**
@@ -514,15 +505,12 @@ class ControllerExtensionModuleRetargeting extends Controller
 
         $images = $this->model_catalog_product->getProductImages($product_id);
 
-        $productimages = [];
+        $extraData = [];
         foreach ($images as $image) {
 
-            $productimages[] = str_replace(' ', '%20', $base_url . 'image/' . $image['image']);
-
+            $extraData[] = $base_url . 'image/' . str_replace($this->replace[0], $this->replace[1], $image['image']);
         }
-
-        return $productimages;
-
+        return $extraData;
     }
 
 }
