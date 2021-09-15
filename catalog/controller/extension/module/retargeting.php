@@ -319,7 +319,7 @@ class ControllerExtensionModuleRetargeting extends Controller
                 foreach ($productCategories as $category) {
 
                     $fullCategory = $this->model_catalog_category->getCategory($category['category_id']);
-                    $extraData['categories'][] = [$fullCategory['category_id'] => $fullCategory['name']];
+                    $extraData['categories'][$fullCategory['category_id']] = $fullCategory['name'];
                 }
 
                 $productImages = $this->model_catalog_product->getProductImages($product['product_id']);
