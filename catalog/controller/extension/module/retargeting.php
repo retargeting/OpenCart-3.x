@@ -16,7 +16,10 @@ require_once DIR_SYSTEM . 'library/retargeting/vendor/autoload.php';
 class ControllerExtensionModuleRetargeting extends Controller
 {
 
-    protected $replace = [['amp;'," "],['&',"%20"]];
+    protected $replace = [
+        ['amp;'," "," ","|"],
+        ['',"%20","%C2%A0","%7C"]
+    ];
     /**
      * @return mixed
      * @throws Exception
@@ -243,8 +246,10 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getManufacturedId(),
                     $this->getProductId()))->getProductCategoriesForFeed((int)$product['product_id']);
 
-                if ($product['quantity'] == 0 || $productPrice == 0 || empty($productCategoryTree) || $productCategoryTree[0]['name'] === null
-                ) {
+                if ( $product['quantity'] == 0 ||
+                    $productPrice == 0 ||
+                    empty($productCategoryTree) ||
+                    $productCategoryTree[0]['name'] === null ) {
                     continue;
                 }
 
