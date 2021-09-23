@@ -32,7 +32,7 @@ class ControllerExtensionModuleRetargeting extends Controller
         if (isset($_GET))
         {
             //Products Feed
-            if(isset($_GET['json']) && $_GET['json'] === 'retargeting')
+            if(isset($_GET['csv']) && $_GET['csv'] === 'retargeting')
             {
                 $start = isset($_GET['start']) ? $_GET['start'] : 0;
                 $limit = isset($_GET['limit']) ? $_GET['limit'] : 250;
