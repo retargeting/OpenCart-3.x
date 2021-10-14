@@ -342,11 +342,11 @@ class ControllerExtensionModuleRetargeting extends Controller {
         $errors = [];
         $contactYourWebAdmin = " in order to function. Please contact your web server administrator for assistance.";
 
-        if (true === version_compare(PHP_VERSION, '7.1', '<='))
+        /*if (true === version_compare(PHP_VERSION, '7.1', '<='))
         {
             $errors[] = 'Your PHP version is too old. The Retargeting plugin requires PHP 7.1 or higher'
                 .$contactYourWebAdmin . 'Your PHP version is currently ' . PHP_VERSION . '. ';
-        }
+        }*/
 
         if (extension_loaded('json') === false)
         {
