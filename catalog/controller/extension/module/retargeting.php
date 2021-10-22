@@ -97,15 +97,19 @@ class ControllerExtensionModuleRetargeting extends Controller
 
         // Recommendation engine
         $data['rec_eng_output'] = $this->getRecommendationEngineOutput();
-
+/*
+        if (isset($this->session->data['order_id'])) {
+            setcookie("retargeting_save_order", $this->session->data['order_id'], time()+3600);
+        }
+*/
         //Populating JS
         $data['js_output']        = (
-        new JS($this,
-            $this->getCurrentPage(),
-            $this->getCurrentCategory(),
-            $this->getManufacturedId(),
-            $this->getProductId()
-        )
+            new JS($this,
+                $this->getCurrentPage(),
+                $this->getCurrentCategory(),
+                $this->getManufacturedId(),
+                $this->getProductId()
+            )
         )->getMainJs();
 
         if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . 'extension/module/retargeting.twig'))

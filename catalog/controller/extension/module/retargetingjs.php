@@ -487,10 +487,17 @@ class JS
      */
     public function saveOrder()
     {
-        if (isset($this->session->data['order_id']) && empty($this->instanceOfThis->session->data['retargeting_save_order']))
+        if (isset($this->instanceOfThis->session->data['order_id']) &&
+            empty($this->instanceOfThis->session->data['retargeting_save_order']))
         {
-            $this->instanceOfThis->session->data['retargeting_save_order'] = $this->session->data['order_id'];
-        }
+            $this->instanceOfThis->session->data['retargeting_save_order'] = $this->instanceOfThis->session->data['order_id'];
+
+        } /* else if(isset($_COOKIE['retargeting_save_order']) &&
+            empty($this->instanceOfThis->session->data['retargeting_save_order'])){
+            $this->instanceOfThis->session->data['retargeting_save_order'] = $_COOKIE['retargeting_save_order'];
+            setcookie('retargeting_save_order', null, time()-3600);
+
+        } */
         
         if ((isset($this->instanceOfThis->session->data['retargeting_save_order']) && !empty($this->instanceOfThis->session->data['retargeting_save_order'])))
         {
@@ -700,12 +707,14 @@ class JS
                     'parent' => $subCategoryDetails['parent_id'] !== '0' ? $subCategoryDetails['parent_id'] : false
                 ];
             }
-
+            $catDetails['parent_id'] = 
+                isset($catDetails['parent_id']) && $catDetails['parent_id'] !== 0 ?
+                    $catDetails['parent_id'] : false;
             $formatCategory[] = [
                 'id'    => $catDetails['category_id'],
                 'name'  => $catDetails['name'],
-                'parent' => $catDetails['parent_id'] !== '0' ? $catDetails['parent_id'] : false,
-                'breadcrumb' => $catDetails['parent_id'] !== '0' ? $breadcrumbCategory : []
+                'parent' => $catDetails['parent_id'],
+                'breadcrumb' => $catDetails['parent_id'] ? $breadcrumbCategory : []
             ];
         }
 
