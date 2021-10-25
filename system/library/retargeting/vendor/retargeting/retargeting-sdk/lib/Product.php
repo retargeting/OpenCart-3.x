@@ -242,7 +242,7 @@ class Product extends AbstractRetargetingSDK
                 'sale price'        => $this->getPromo(),
                 'brand'             => $this->getBrand(),
                 'category'          => $this->getCategory(true),
-                'extra data'        => json_encode($this->getExtraData(), JSON_PRETTY_PRINT),
+                'extra data'        => json_encode($this->getExtraData()),
             ];
 
         } else {
