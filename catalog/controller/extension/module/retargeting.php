@@ -17,8 +17,8 @@ class ControllerExtensionModuleRetargeting extends Controller
 {
 
     protected $replace = [
-        ['amp;'," "," ","|"],
-        ['',"%20","%C2%A0","%7C"]
+        ['amp;', " ", " ", "|", '°', '[', ']', '^', '–', "∅"],
+        ['', "%20", "%C2%A0", "%7C", '%C2%B0', '%5B', '%5D', '%5E', '%E2%80%93',"%E2%88%85"]
     ];
     /**
      * @return mixed
