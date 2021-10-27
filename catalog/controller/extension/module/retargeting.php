@@ -1,14 +1,17 @@
 <?php
-
-//ini_set('display_errors', 1);
-//ini_set('display_startup_errors', 1);
-//error_reporting(E_ALL);
-
+/*if(isset($_GET['csv']) && $_GET['csv'] === 'retargeting')
+{
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+}*/
 use RetargetingSDK\Helpers\UrlHelper;
+
+$lim = substr(DIR_SYSTEM, -1) !== '/' ? '/' : '';
 
 require_once 'retargetingconfigs.php';
 require_once 'retargetingjs.php';
-require_once DIR_SYSTEM . 'library/retargeting/vendor/autoload.php';
+require_once DIR_SYSTEM . $lim . 'library/retargeting/vendor/autoload.php';
 
 /*
  * Retargeting Tracker for OpenCart 3.x
