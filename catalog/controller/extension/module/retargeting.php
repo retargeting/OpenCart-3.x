@@ -22,10 +22,6 @@ require_once DIR_SYSTEM . $lim .
 class ControllerExtensionModuleRetargeting extends Controller
 {
 
-    protected $replace = [
-        ['amp;', " ", " ", "|", '°', '[', ']', '^', '–', "∅"],
-        ['', "%20", "%C2%A0", "%7C", '%C2%B0', '%5B', '%5D', '%5E', '%E2%80%93',"%E2%88%85"]
-    ];
     /**
      * @return mixed
      * @throws Exception
@@ -294,8 +290,8 @@ class ControllerExtensionModuleRetargeting extends Controller
 
                 $setupProduct->setId($product['product_id']);
                 $setupProduct->setName($product['name']);
-                $setupProduct->setUrl( str_replace($this->replace[0], $this->replace[1], $productUrl) );
-                $setupProduct->setImg( str_replace($this->replace[0], $this->replace[1], $productImage) );
+                $setupProduct->setUrl( $this->fixURL($productUrl) );
+                $setupProduct->setImg( $this->fixURL($productImage) );
                 $setupProduct->setPrice($price);
                 $setupProduct->setPromo($promoPrice);
                 $setupProduct->setBrand(\RetargetingSDK\Helpers\BrandHelper::validate([
@@ -319,7 +315,17 @@ class ControllerExtensionModuleRetargeting extends Controller
         die;
 
     }
-
+    
+    public function fixURL($url)
+    {
+        $newURL = [];
+        foreach (explode("/",$url) as $k=>$v ){
+            if ($k > 2) {
+                $newURL[$k] = urlencode($v);
+            }
+        }
+        return implode("/",$newURL);
+    }
     /**
      * Generate a random discount code
      * @return string
