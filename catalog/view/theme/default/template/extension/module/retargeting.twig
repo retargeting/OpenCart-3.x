@@ -7,14 +7,17 @@ ra_params = {
   price_label_id: 'price_label_id',
 };
 var ra = document.createElement("script"); ra.type ="text/javascript"; ra.async = true;
-ra.addEventListener("load", function(event) { console.log("⚡ RTG loaded ⚡"); StartRTG(); });
+ra.addEventListener("load", function(event) {
+  console.log("⚡ RTG loaded ⚡");
+  StartRTG();
+});
 ra.src = ("https:" ==
 document.location.protocol ? "https://" : "http://") + "tracking.retargeting.biz/v3/rajs/" + ra_key + ".js";
 var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ra,s);})();
 function StartRTG(){
-    if(_ra === undefined) {
-        _ra = _ra || {};
-    }
-    {{ js_output }}
+  if(_ra === undefined) {
+      _ra = _ra || {};
+  }
+  {{ js_output }}
 }
 </script>

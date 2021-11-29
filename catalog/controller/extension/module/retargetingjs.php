@@ -356,14 +356,15 @@ class JS
             $this->data .= "
             /* --- addToCart --- */
             
-            document.addEventListener(\"DOMContentLoaded\", function(event) { 
+            //document.addEventListener(\"DOMContentLoaded\", function(event) { 
                 
                 var retargeting_addToCart = \"{$retargetingAddToCart}\";
                 
                 document.querySelector(retargeting_addToCart).addEventListener('click', function (e) {
-                    _ra.addToCart({$product['product_id']}, " . (($product['quantity'] > 0) ? 1 : 0) . ", false, function(){console.log('addToCart fired!')});
+                    let q = document.querySelector('[name=\"quantity\"]') === undefined ? 1 : document.querySelector('[name=\"quantity\"]').value;
+                    _ra.addToCart({$product['product_id']}, q, false, function(){console.log('addToCart fired!')});
                 });
-            });
+            //});
         ";
 
             //addToWishlistInfo
@@ -709,12 +710,15 @@ class JS
             $catDetails['parent_id'] = 
                 isset($catDetails['parent_id']) && $catDetails['parent_id'] !== 0 ?
                     $catDetails['parent_id'] : false;
-            $formatCategory[] = [
-                'id'    => $catDetails['category_id'],
-                'name'  => $catDetails['name'],
-                'parent' => $catDetails['parent_id'],
-                'breadcrumb' => $catDetails['parent_id'] ? $breadcrumbCategory : []
-            ];
+            if (!empty($catDetails['category_id'])) {
+
+                $formatCategory[] = [
+                    'id'    => $catDetails['category_id'],
+                    'name'  => $catDetails['name'],
+                    'parent' => $catDetails['parent_id'],
+                    'breadcrumb' => $catDetails['parent_id'] ? $breadcrumbCategory : []
+                ];
+            }
         }
 
         return $formatCategory;

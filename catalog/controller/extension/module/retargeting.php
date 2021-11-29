@@ -195,8 +195,8 @@ class ControllerExtensionModuleRetargeting extends Controller
      */
     public function getProductsFeed($start, $limit)
     {
-        header("Content-Disposition: attachment; filename=retargeting.csv; charset=utf-8");
-        header("Content-type: text/csv");
+        header("Content-Disposition: attachment; filename=retargeting.csv;");
+        header("Content-type: text/csv; charset=utf-8");
 
         $params = [
             'start' => $start,
@@ -252,10 +252,9 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getManufacturedId(),
                     $this->getProductId()))->getProductCategoriesForFeed((int)$product['product_id']);
 
-                if ( $product['quantity'] == 0 ||
-                    $productPrice == 0 ||
+                if ($productPrice == 0 ||
                     empty($productCategoryTree) ||
-                    $productCategoryTree[0]['name'] === null ) {
+                    empty($productCategoryTree[0]['name'])) {
                     continue;
                 }
 
@@ -267,7 +266,7 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getProductId()))->getProductImages((int)$product['product_id'], $baseUrl);
 
                 $price = number_format($productPrice, 2, '.', '');
-                $promoPrice = $productSpecialPrice > 0 ? number_format($productSpecialPrice, 2, '.', '') : $price;
+                $promoPrice = $productSpecialPrice > 0 && $productSpecialPrice < $price ? number_format($productSpecialPrice, 2, '.', '') : $price;
 
                 $extraData = $this->getExtraData([
                     'categories' => $this->model_catalog_product->getCategories($product['product_id']),
@@ -286,24 +285,19 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $productImage = $baseUrl. 'image/no_image-40x40.png';
                 }
 
-                $setupProduct =  new \RetargetingSDK\Product();
-
-                $setupProduct->setId($product['product_id']);
-                $setupProduct->setName($product['name']);
-                $setupProduct->setUrl( $this->fixURL($productUrl) );
-                $setupProduct->setImg( $this->fixURL($productImage) );
-                $setupProduct->setPrice($price);
-                $setupProduct->setPromo($promoPrice);
-                $setupProduct->setBrand(\RetargetingSDK\Helpers\BrandHelper::validate([
-                    'id'    => $product['manufacturer_id'],
-                    'name'  => $product['manufacturer']
-                ]));
-                $setupProduct->setCategory($productCategoryTree);
-                $setupProduct->setInventory($product['quantity']);
-                $setupProduct->setAdditionalImages($productAdditionalImages);
-                $setupProduct->setExtraData($extraData);
-
-                fputcsv($outstream, $setupProduct->getData(true, false), ',', '"');
+                $outproduct = [
+                    'product id' => $product['product_id'],
+                    'product name' => str_replace(["''",''],['inch',''],$product['name']),
+                    'product url' => $this->fixURL($productUrl),
+                    'image url' => $this->fixURL($productImage),
+                    'stock' => $product['quantity'] === -1 ? 1 : $product['quantity'],
+                    'price' => $price,
+                    'sale price' => $promoPrice,
+                    'brand' => $product['manufacturer'],
+                    'category' => $productCategoryTree[0]['name'],
+                    'extra data' => str_replace('\"', '""', json_encode($extraData, JSON_UNESCAPED_UNICODE))
+                ];
+                fputcsv($outstream, $outproduct, ',', '"');
 
             }
 
@@ -499,10 +493,13 @@ class ControllerExtensionModuleRetargeting extends Controller
                     continue;
                 }
 
+                $newPrice = number_format($option['price_prefix'] === '+' ? $price + $option['price'] : $price - $option['price'], 2, '.', '');
+                $newSalePrice = number_format($option['price_prefix'] === '+' ? $promoPrice + $option['price'] : $promoPrice - $option['price'], 2, '.', '');
+                
                 $variations[] = [
                     'code' => $option['name'],
-                    'price' => $option['price_prefix'] === '+' ? $price + $option['price'] : $price - $option['price'],
-                    'sale_price' => $option['price_prefix'] === '+' ? $promoPrice + $option['price'] : $promoPrice - $option['price'],
+                    'price' => $newPrice,
+                    'sale_price' => $newSalePrice,
                     'stock' => $option['quantity']
                 ];
 
