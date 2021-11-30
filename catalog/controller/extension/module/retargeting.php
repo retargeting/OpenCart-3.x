@@ -544,8 +544,7 @@ class ControllerExtensionModuleRetargeting extends Controller
 
         $extraData = [];
         foreach ($images as $image) {
-
-            $extraData[] = $base_url . 'image/' . str_replace($this->replace[0], $this->replace[1], $image['image']);
+            $extraData[] = $this->fixURL($base_url . 'image/' . $image['image']);
         }
         return $extraData;
     }
