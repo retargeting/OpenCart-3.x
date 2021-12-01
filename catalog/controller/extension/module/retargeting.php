@@ -324,7 +324,7 @@ class ControllerExtensionModuleRetargeting extends Controller
             
             foreach ($newURL as $k=>$v ){
                 if (!$this->checkHTTP || $this->checkHTTP && $k > 2) {
-                    $newURL[$k] = urlencode($v);
+                    $newURL[$k] = rawurlencode($v);
                 }
             }
     
