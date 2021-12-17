@@ -195,15 +195,19 @@ class ControllerExtensionModuleRetargeting extends Controller
      */
     public function getProductsFeed($start, $limit)
     {
-        header("Content-Disposition: attachment; filename=retargeting.csv;");
-        header("Content-type: text/csv; charset=utf-8");
+        header("Content-Disposition: attachment; filename=retargeting.csv; charset=utf-8");
+        header("Content-type: text/csv");
+        ini_set('display_errors', 'on');
+        error_reporting(E_ALL); 
+
+        $defStock = $this->config->get('module_retargeting_stock');
 
         $params = [
             'start' => $start,
             'limit' => $limit
         ];
-        $baseUrl = $this->config->get('config_url');
-        /* $baseUrl = (new Configs($this))->getBaseUrl(); */
+
+        $baseUrl = (new Configs($this))->getBaseUrl();
 
         $productsLoop = true;
 
@@ -233,15 +237,18 @@ class ControllerExtensionModuleRetargeting extends Controller
 
             foreach ($products as $key => $product) {
 
-                $productPrice = \RetargetingSDK\Helpers\ProductFeedHelper::formatPrice($product['price']);
-                $productSpecialPrice = $product['special'] !== null ? \RetargetingSDK\Helpers\ProductFeedHelper::formatPrice($product['special']) : 0;
-                $productPrice = $this->tax->calculate($productPrice, $product['tax_class_id'], $this->config->get('config_tax'), false, false);
-                $productPrice = round($productPrice, 2);
+                $productPrice = $product['price'];// \RetargetingSDK\Helpers\ProductFeedHelper::formatPrice();
+                $productSpecialPrice = isset($product['special']) ? $product['special'] : 0; //\RetargetingSDK\Helpers\ProductFeedHelper::formatPrice() 
+                
+                $productPrice = $this->getProductPrice($productPrice, $product['tax_class_id']);
+                
+                //$productPrice = round($productPrice, 2);
 
                 if ($productSpecialPrice == '0') {
                     $productSpecialPrice = $productPrice;
                 } else {
-                    $productSpecialPrice = $this->tax->calculate($productSpecialPrice, $product['tax_class_id'], $this->config->get('config_tax'), false, false);
+                    
+                    $productSpecialPrice = $this->getProductPrice($productSpecialPrice, $product['tax_class_id']);
                 }
 
                 $productUrl = $this->url->link('product/product', 'product_id=' . $product['product_id']);
@@ -252,9 +259,8 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getManufacturedId(),
                     $this->getProductId()))->getProductCategoriesForFeed((int)$product['product_id']);
 
-                if ($productPrice == 0 ||
-                    empty($productCategoryTree) ||
-                    empty($productCategoryTree[0]['name'])) {
+                if ($product['quantity'] == 0 || $productPrice == 0 || empty($productCategoryTree) || $productCategoryTree[0]['name'] === null
+                ) {
                     continue;
                 }
 
@@ -265,38 +271,121 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getManufacturedId(),
                     $this->getProductId()))->getProductImages((int)$product['product_id'], $baseUrl);
 
-                $price = number_format($productPrice, 2, '.', '');
-                $promoPrice = $productSpecialPrice > 0 && $productSpecialPrice < $price ? number_format($productSpecialPrice, 2, '.', '') : $price;
+                $extraData = [
+                    'media_gallery' => [],
+                    'variations' => [],
+                    'categories' => []
+                ];
 
-                $extraData = $this->getExtraData([
-                    'categories' => $this->model_catalog_product->getCategories($product['product_id']),
-                    'variations' => $this->model_catalog_product->getProductOptions($product['product_id']),
-                    'product_id' => $product['product_id'],
-                    'base_url'   => $baseUrl,
-                    'price' => $price,
-                    'promoPrice' => $promoPrice,
-                ]);
+                $productCategories = $this->model_catalog_product->getCategories($product['product_id']);
+
+                foreach ($productCategories as $category) {
+
+                    $fullCategory = $this->model_catalog_category->getCategory($category['category_id']);
+                    $extraData['categories'][$category['category_id']] = $fullCategory['name'];
+                }
+
+                $productImages = $this->model_catalog_product->getProductImages($product['product_id']);
+
+                foreach ($productImages as $image) {
+
+                    $extraData['media_gallery'][] = $this->config->get('config_url') . 'image/' . str_replace(' ', '%20', $image['image']);
+                }
 
                 if (!empty($product['image'])) {
                     $productImage = $baseUrl . 'image/' . $product['image'];
                 } else if (!empty($this->config->get('config_logo'))) {
-                    $productImage = $baseUrl . 'image/' . $this->config->get('config_logo');
+                    $productImage = $this->config->get('config_url') . 'image/' . $this->config->get('config_logo');
                 } else {
-                    $productImage = $baseUrl. 'image/no_image-40x40.png';
+                    $productImage = $this->config->get('config_url') . 'image/no_image-40x40.png';
                 }
-                $outproduct = [
-                    'product id' => $product['product_id'],
-                    'product name' => str_replace(["''",''],['inch',''],$product['name']),
-                    'product url' => $this->fixURL($productUrl),
-                    'image url' => $this->fixURL($productImage),
-                    'stock' => $product['quantity'] === -1 ? 1 : $product['quantity'],
-                    'price' => $price,
-                    'sale price' => $promoPrice,
-                    'brand' => $product['manufacturer'],
-                    'category' => $productCategoryTree[0]['name'],
-                    'extra data' => str_replace('\"', '""', json_encode($extraData, JSON_UNESCAPED_UNICODE))
+
+                $price = $productPrice;
+                $promoPrice = $productSpecialPrice > 0 ? $productSpecialPrice : $price;
+
+                $options = $this->model_catalog_product->getProductOptions($product['product_id']);
+
+                foreach($options as $optionValue) {
+
+                    foreach ($optionValue['product_option_value'] as $option) {
+
+                        if (empty($option['price'])) {
+                            continue;
+                        }
+
+                        $extraData['variations'][] = [
+                            'code' => $option['name'],
+                            'price' => $option['price_prefix'] === '+' ? $price + $option['price'] : $price - $option['price'],
+                            'sale_price' => $option['price_prefix'] === '+' ? $promoPrice + $option['price'] : $promoPrice - $option['price'],
+                            'stock' => $option['quantity'] < 0 ? $defStock : $option['quantity']
+                        ];
+
+                    }
+
+                }
+
+                $extraData = [
+                    'media_gallery' => [],
+                    'variations' => [],
+                    'categories' => []
                 ];
-                fputcsv($outstream, $outproduct, ',', '"');
+
+                $productCategories = $this->model_catalog_product->getCategories($product['product_id']);
+
+                foreach ($productCategories as $category) {
+
+                    $fullCategory = $this->model_catalog_category->getCategory($category['category_id']);
+                    $extraData['categories'][$fullCategory['category_id']] = $fullCategory['name'];
+                }
+
+                $productImages = $this->model_catalog_product->getProductImages($product['product_id']);
+
+                foreach ($productImages as $image) {
+                    $extraData['media_gallery'][] = $this->config->get('config_url') . 'image/' . str_replace(' ', '%20', $image['image']);
+                }
+
+                //$price = number_format($productPrice, 2, '.', '');
+                //$promoPrice = $productSpecialPrice > 0 ? number_format($productSpecialPrice, 2, '.', '') : $price;
+
+                $options = $this->model_catalog_product->getProductOptions($product['product_id']);
+
+                foreach($options as $optionValue) {
+
+                    foreach ($optionValue['product_option_value'] as $option) {
+
+                        if (empty($option['price'])) {
+                            continue;
+                        }
+
+                        $extraData['variations'][] = [
+                            'code' => $option['name'],
+                            'price' => $option['price_prefix'] === '+' ? $price + $option['price'] : $price - $option['price'],
+                            'sale_price' => $option['price_prefix'] === '+' ? $promoPrice + $option['price'] : $promoPrice - $option['price'],
+                            'stock' => $option['quantity'] < 0 ? $defStock : $option['quantity']
+                        ];
+
+                    }
+
+                }
+
+                $setupProduct =  new \RetargetingSDK\Product();
+                $setupProduct->setId($product['product_id']);
+                $setupProduct->setName($product['name']);
+                $setupProduct->setUrl( str_replace($this->replace[0], $this->replace[1], $productUrl) );
+                $setupProduct->setImg( str_replace($this->replace[0], $this->replace[1], $productImage) );
+                $setupProduct->setPrice($price);
+                $setupProduct->setPromo($promoPrice);
+                $setupProduct->setBrand(\RetargetingSDK\Helpers\BrandHelper::validate([
+                    'id'    => $product['manufacturer_id'],
+                    'name'  => $product['manufacturer']
+                ]));
+                $setupProduct->setCategory($productCategoryTree);
+                $setupProduct->setInventory($product['quantity'] < 0 ? $defStock : $product['quantity']);
+                $setupProduct->setAdditionalImages($productAdditionalImages);
+                $setupProduct->setExtraData($extraData);
+
+                fputcsv($outstream, $setupProduct->getData(true, false), ',', '"');
+
             }
 
             $params['start'] += $params['limit'];

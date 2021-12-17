@@ -40,7 +40,7 @@ class Product extends AbstractRetargetingSDK
      */
     public function setId($id)
     {
-        $id = $this->formatIntFloatString($id);
+        // $id = $this->formatIntFloatString($id);
 
         $this->id = $id;
     }
@@ -96,7 +96,7 @@ class Product extends AbstractRetargetingSDK
      */
     public function setImg($img)
     {
-        $img = UrlHelper::validate($img);
+        // $img = UrlHelper::validate($img);
 
         $this->img = $img;
     }

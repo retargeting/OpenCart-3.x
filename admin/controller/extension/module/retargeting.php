@@ -151,6 +151,12 @@ class ControllerExtensionModuleRetargeting extends Controller {
         } else {
             $data['module_retargeting_clickImage'] = $this->config->get('module_retargeting_clickImage');
         }
+        /* 4. stock with - */
+        if (isset($this->request->post['module_retargeting_stock'])) {
+            $data['module_retargeting_stock'] = $this->request->post['module_retargeting_stock'];
+        } else {
+            $data['module_retargeting_stock'] = $this->config->get('module_retargeting_stock');
+        }
 
         /*
          * Common admin area items

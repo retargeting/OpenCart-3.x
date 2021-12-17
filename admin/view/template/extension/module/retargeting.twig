@@ -29,10 +29,10 @@
 
             <div class="panel-body">
 
-                <!-- Retargeting logo/img -->
+                <!-- Retargeting logo/img https://retargeting.ro/static/images/i/logo.png-->
                 <div class="row" style="min-height:45px;">
                     <div class="col-md-12">
-                        <img src="https://retargeting.ro/static/images/i/logo.png" class="img-responsive" alt="Retargeting Tracker" />
+                        <img src="https://retargeting.biz/img/logos/LOGO_retargeting.svg" class="img-responsive" style="height:70px;padding:10px;" alt="Retargeting Tracker" />
                     </div>
                 </div>
 
@@ -126,6 +126,22 @@
                                    placeholder="a.thumbnail" id="input-clickImage" class="form-control"
                             />
                             <span class="small">Main product image container query selector.</span>
+                        </div>
+                    </div>
+                    <!-- Stock status -->
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label" for="input-status">Default Stock Status</label>
+                        <div class="col-sm-10">
+                            <select name="module_retargeting_stock" id="input-status" class="form-control">
+                              {% if module_retargeting_stock %}
+                              <option value="1" selected="selected">In Stock</option>
+                              <option value="0">Out of Stock</option>
+                              {% else %}
+                              <option value="1">In Stock</option>
+                              <option value="0" selected="selected">Out of Stock</option>
+                              {% endif %}
+                            </select>
+                            <span class="small">Default stock Status if is negative quantity like "-1"</span>
                         </div>
                     </div>
 
