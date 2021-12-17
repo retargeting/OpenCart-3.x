@@ -284,7 +284,6 @@ class ControllerExtensionModuleRetargeting extends Controller
                 } else {
                     $productImage = $baseUrl. 'image/no_image-40x40.png';
                 }
-
                 $outproduct = [
                     'product id' => $product['product_id'],
                     'product name' => str_replace(["''",''],['inch',''],$product['name']),
@@ -298,7 +297,6 @@ class ControllerExtensionModuleRetargeting extends Controller
                     'extra data' => str_replace('\"', '""', json_encode($extraData, JSON_UNESCAPED_UNICODE))
                 ];
                 fputcsv($outstream, $outproduct, ',', '"');
-
             }
 
             $params['start'] += $params['limit'];
