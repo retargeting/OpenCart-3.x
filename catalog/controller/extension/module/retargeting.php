@@ -188,6 +188,21 @@ class ControllerExtensionModuleRetargeting extends Controller
     }
 
     /**
+     * Get product price
+     * @param $price
+     * @param $taxClassId
+     * @return float
+     */
+    public function getProductPrice($price, $taxClassId)
+    {
+        return $this->tax->calculate(
+            $price,
+            $taxClassId,
+            $this->config->get('config_tax')
+        );
+    }
+
+    /**
      * Get products feed
      * @param $start
      * @param $limit
@@ -195,12 +210,13 @@ class ControllerExtensionModuleRetargeting extends Controller
      */
     public function getProductsFeed($start, $limit)
     {
-        header("Content-Disposition: attachment; filename=retargeting.csv; charset=utf-8");
-        header("Content-type: text/csv");
-        ini_set('display_errors', 'on');
+        header("Content-Disposition: attachment; filename=retargeting.csv");
+        header("Content-type: text/csv; charset=utf-8");
+        
+        ini_set("display_errors", "on");
         error_reporting(E_ALL); 
 
-        $defStock = $this->config->get('module_retargeting_stock');
+        $defStock = empty($this->config->get('module_retargeting_stock')) ? 0 : $this->config->get('module_retargeting_stock');
 
         $params = [
             'start' => $start,
