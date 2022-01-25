@@ -292,6 +292,11 @@ class JS
 
             $productCategoryTree = $this->getProductCategoriesForFeed((int)$product['product_id']);
 
+            $defStock = $this->instanceOfThis->config->get('module_retargeting_stock') === null ?
+                0 : $this->instanceOfThis->config->get('module_retargeting_stock');
+            
+            $product['quantity'] = $product['quantity'] < 0 ? $defStock : $product['quantity'];
+
             $productInventory = $this->getProductInventory((int)$product['product_id'], $product['quantity']);
 
             $productAdditionalImages = $this->getProductImages((int)$product['product_id'], $baseUrl);

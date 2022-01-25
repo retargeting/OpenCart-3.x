@@ -195,11 +195,11 @@ class ControllerExtensionModuleRetargeting extends Controller
      */
     public function getProductPrice($price, $taxClassId)
     {
-        return $this->tax->calculate(
+        return number_format($this->tax->calculate(
             $price,
             $taxClassId,
             $this->config->get('config_tax')
-        );
+        ), 2, '.', '');
     }
 
     /**
@@ -246,7 +246,7 @@ class ControllerExtensionModuleRetargeting extends Controller
 
             $products = $this->model_catalog_product->getProducts($params);
 
-            if(empty($products)) {
+            if(empty($products)) { // || $params['start'] > 500
                 $productsLoop = false;
                 break;
             }
@@ -260,7 +260,7 @@ class ControllerExtensionModuleRetargeting extends Controller
                 
                 //$productPrice = round($productPrice, 2);
 
-                if ($productSpecialPrice == '0') {
+                if ((int) $productSpecialPrice == 0) {
                     $productSpecialPrice = $productPrice;
                 } else {
                     
@@ -274,6 +274,8 @@ class ControllerExtensionModuleRetargeting extends Controller
                     $this->getCurrentCategory(),
                     $this->getManufacturedId(),
                     $this->getProductId()))->getProductCategoriesForFeed((int)$product['product_id']);
+
+                $product['quantity'] = $product['quantity'] < 0 ? $defStock : $product['quantity'];
 
                 if ($product['quantity'] == 0 || $productPrice == 0 || empty($productCategoryTree) || $productCategoryTree[0]['name'] === null
                 ) {
@@ -387,8 +389,8 @@ class ControllerExtensionModuleRetargeting extends Controller
                 $setupProduct =  new \RetargetingSDK\Product();
                 $setupProduct->setId($product['product_id']);
                 $setupProduct->setName($product['name']);
-                $setupProduct->setUrl( str_replace($this->replace[0], $this->replace[1], $productUrl) );
-                $setupProduct->setImg( str_replace($this->replace[0], $this->replace[1], $productImage) );
+                $setupProduct->setUrl( $this->fixURL($productUrl) );
+                $setupProduct->setImg( $this->fixURL($productImage) );
                 $setupProduct->setPrice($price);
                 $setupProduct->setPromo($promoPrice);
                 $setupProduct->setBrand(\RetargetingSDK\Helpers\BrandHelper::validate([
@@ -396,7 +398,7 @@ class ControllerExtensionModuleRetargeting extends Controller
                     'name'  => $product['manufacturer']
                 ]));
                 $setupProduct->setCategory($productCategoryTree);
-                $setupProduct->setInventory($product['quantity'] < 0 ? $defStock : $product['quantity']);
+                $setupProduct->setInventory($product['quantity']);
                 $setupProduct->setAdditionalImages($productAdditionalImages);
                 $setupProduct->setExtraData($extraData);
 
