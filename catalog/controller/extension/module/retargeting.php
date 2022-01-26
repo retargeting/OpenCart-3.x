@@ -278,7 +278,7 @@ class ControllerExtensionModuleRetargeting extends Controller
 
                 $product['quantity'] = $product['quantity'] < 0 ? $defStock : $product['quantity'];
 
-                if ($product['quantity'] == 0 || $productPrice == 0 || empty($productCategoryTree) || $productCategoryTree[0]['name'] === null
+                if ((int) $product['quantity'] == 0 || $productPrice == 0 || empty($productCategoryTree) || $productCategoryTree[0]['name'] === null
                 ) {
                     continue;
                 }
