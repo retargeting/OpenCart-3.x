@@ -220,7 +220,8 @@ class ControllerExtensionModuleRetargeting extends Controller
 
         $params = [
             'start' => $start,
-            'limit' => $limit
+            'limit' => $limit,
+            'filter_status' => 1
         ];
 
         $baseUrl = (new Configs($this))->getBaseUrl();
