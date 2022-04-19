@@ -34,12 +34,16 @@ class ControllerExtensionModuleRetargeting extends Controller
         if (isset($_GET))
         {
             //Products Feed
-            if(isset($_GET['csv']) && $_GET['csv'] === 'retargeting')
-            {
+            if (isset($_GET['csv'])) {
                 $start = isset($_GET['start']) ? $_GET['start'] : 0;
                 $limit = isset($_GET['limit']) ? $_GET['limit'] : 250;
 
-                $this->getProductsFeed($start, $limit);
+                if($_GET['csv'] === 'retargeting') {
+                    $this->getProductsFeed($start, $limit);
+                } else if($_GET['csv'] === 'retargeting-cron') {
+                    $this->getProductsFeed($start, $limit, true);
+                }
+
             }
 
             //Plugin Version
@@ -208,11 +212,13 @@ class ControllerExtensionModuleRetargeting extends Controller
      * @param $limit
      * @throws Exception
      */
-    public function getProductsFeed($start, $limit)
+    public function getProductsFeed($start, $limit, $cron = false)
     {
-        header("Content-Disposition: attachment; filename=retargeting.csv");
-        header("Content-type: text/csv; charset=utf-8");
-        
+        if (!$cron) {
+            header("Content-Disposition: attachment; filename=retargeting.csv");
+            header("Content-type: text/csv; charset=utf-8");
+        }
+
         ini_set("display_errors", "on");
         error_reporting(E_ALL); 
 
@@ -228,7 +234,14 @@ class ControllerExtensionModuleRetargeting extends Controller
 
         $productsLoop = true;
 
-        $outstream = fopen('php://output', 'w');
+        if ($cron) {
+            $dir = dirname(DIR_APPLICATION);
+            $file = 'retargeting';
+            $tmp = $file.'.'.time();
+            $outstream = fopen($dir.'/'.$tmp.'.csv', 'w');
+        } else {
+            $outstream = fopen('php://output', 'w');
+        }
 
         fputcsv($outstream, [
             'product id',
@@ -412,7 +425,23 @@ class ControllerExtensionModuleRetargeting extends Controller
         }
 
         fclose($outstream);
-        die;
+        if ($cron) {
+            try {
+                copy($dir.'/'.$tmp.'.csv', $dir.'/'.$file.'.csv');
+
+                unlink($dir.'/'.$tmp.'.csv');
+                
+            } catch (\Exception $e) {
+                header( 'Content-Type: text/json' );
+                echo json_encode( ['status' => 'error'] );
+                die();
+            }
+
+            header( 'Content-Type: text/json' );
+            echo json_encode( ['status' => 'success'] );
+        }
+
+        die();
 
     }
     
@@ -420,6 +449,8 @@ class ControllerExtensionModuleRetargeting extends Controller
 
     public function fixURL($url)
     {
+        $url = str_replace("&amp;", "&", $url);
+        
         if (!filter_var($url, FILTER_VALIDATE_URL) && !strpos($url, "%20")) {
             $new_URL = explode("?", $url, 2);
             $newURL = explode("/",$new_URL[0]);
