@@ -30,18 +30,38 @@ class ControllerExtensionModuleRetargeting extends Controller
     {
         //Get configs
         $data = (new Configs($this))->getConfigs();
+        
+        $opt = getopt("", array("csv:"));
 
-        if (isset($_GET))
-        {
+        if (isset($opt['csv'])) {
+            $_GET['csv'] = $opt['csv'];
+        }
+
+        if (isset($_GET)) {
             //Products Feed
             if (isset($_GET['csv'])) {
                 $start = isset($_GET['start']) ? $_GET['start'] : 0;
                 $limit = isset($_GET['limit']) ? $_GET['limit'] : 250;
-
+                /*
+                var_dump($_GET,$opt);
+                die();
+                */
                 if($_GET['csv'] === 'retargeting') {
                     $this->getProductsFeed($start, $limit);
                 } else if($_GET['csv'] === 'retargeting-cron') {
-                    $this->getProductsFeed($start, $limit, true);
+                    if ($this->config->get('module_retargeting_cron') == 1) {
+                        $this->getProductsFeed($start, $limit, true);
+                    } else {
+                        header('Content-Type: application/json');
+                        echo json_encode(
+                        [
+                            'status' => 'cron_inactive',
+                            'data' => [
+                                'version' => VERSION
+                            ]
+                        ], JSON_PRETTY_PRINT);
+                        die();
+                    }
                 }
 
             }

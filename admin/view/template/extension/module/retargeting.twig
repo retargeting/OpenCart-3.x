@@ -144,9 +144,24 @@
                             <span class="small">Default stock Status if is negative quantity like "-1"</span>
                         </div>
                     </div>
+                    <!-- Cron status -->
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label" for="input-status">Static Feed</label>
+                        <div class="col-sm-10">
+                            <select name="module_retargeting_cron" id="input-status" class="form-control">
+                              {% if module_retargeting_cron %}
+                              <option value="1" selected="selected">Yes</option>
+                              <option value="0">No</option>
+                              {% else %}
+                              <option value="1">Yes</option>
+                              <option value="0" selected="selected">No</option>
+                              {% endif %}
+                            </select>
+                            <span class="small"><b>Set "Yes" to generate static Feed every 3 Hours - {{ site_url }}/retargeting.csv</b>{{ cron }}</span>
+                        </div>
+                    </div>
 
                     <div class="row" style="padding-top: 45px;">
-                        <hr />
                         <div class="col-sm-12">
                             <span class="small">You can get your <strong>Tracking API Key</strong> and <strong>REST API Key</strong> from your <a href="https://retargeting.biz/admin?action=api_redirect&token=028e36488ab8dd68eaac58e07ef8f9bf" target="_blank" rel="noopener noreferrer">Retargeting account</a>.</span>
                         </div>

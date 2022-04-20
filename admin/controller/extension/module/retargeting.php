@@ -151,11 +151,25 @@ class ControllerExtensionModuleRetargeting extends Controller {
         } else {
             $data['module_retargeting_clickImage'] = $this->config->get('module_retargeting_clickImage');
         }
-        /* 4. stock with - */
+        /* 4. stock */
         if (isset($this->request->post['module_retargeting_stock'])) {
             $data['module_retargeting_stock'] = $this->request->post['module_retargeting_stock'];
         } else {
             $data['module_retargeting_stock'] = $this->config->get('module_retargeting_stock');
+        }
+        /* 5. cron */
+        if (isset($this->request->post['module_retargeting_cron'])) {
+            $data['module_retargeting_cron'] = $this->request->post['module_retargeting_cron'];
+        } else {
+            $data['module_retargeting_cron'] = $this->config->get('module_retargeting_cron');
+        }
+
+        if ($data['module_retargeting_cron'] == 1) {
+            $dir = dirname(DIR_APPLICATION);
+            $data['cron'] = "<br /><b>Please make sure you have this cronJob in your Hosting CronJob List <br />
+<pre style='color:red'>0 */3 * * * /usr/bin/php -q ".$dir."/index.php --csv retargeting-cron > ".$dir."/rtg.cron.log</pre></b>";
+        } else {
+            $data['cron'] = "";
         }
 
         /*
@@ -164,6 +178,15 @@ class ControllerExtensionModuleRetargeting extends Controller {
         $data['header']      = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer']      = $this->load->controller('common/footer');
+
+        if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1) ||
+            isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+            $protocol = 'https://';
+        } else {
+            $protocol = 'http://';
+        }
+
+        $data['site_url'] = $protocol.$_SERVER['HTTP_HOST'];
 
         $this->response->setOutput($this->load->view('extension/module/retargeting', $data));
     }
