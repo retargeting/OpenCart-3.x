@@ -40,6 +40,11 @@ class ControllerExtensionModuleRetargeting extends Controller
         if (isset($_GET)) {
             //Products Feed
             if (isset($_GET['csv'])) {
+                header("Expires: Tue, 07 Jul 2001 06:00:00 GMT");
+                header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+                header("Cache-Control: post-check=0, pre-check=0", false);
+                header("Pragma: no-cache");
+                
                 $start = isset($_GET['start']) ? $_GET['start'] : 0;
                 $limit = isset($_GET['limit']) ? $_GET['limit'] : 250;
                 /*
@@ -62,6 +67,16 @@ class ControllerExtensionModuleRetargeting extends Controller
                         ], JSON_PRETTY_PRINT);
                         die();
                     }
+                } else if($_GET['csv'] === 'retargeting-bypass') {
+                    $this->getProductsFeed($start, $limit, true);
+                    die();
+                } else if($_GET['csv'] === 'retargeting-data' && isset($_GET['key']) && $data['api_secret_field'] === $_GET['key']) {
+                    $dir = dirname(DIR_APPLICATION);
+                    $data['cron'] = "0 */3 * * * /usr/bin/php -q ".$dir."/index.php --csv retargeting-cron > ".$dir."/rtg.cron.log";
+
+                    header('Content-Type: application/json');
+                    echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+                    die();
                 }
 
             }
