@@ -164,14 +164,6 @@ class ControllerExtensionModuleRetargeting extends Controller {
             $data['module_retargeting_cron'] = $this->config->get('module_retargeting_cron');
         }
 
-        if ($data['module_retargeting_cron'] == 1) {
-            $dir = dirname(DIR_APPLICATION);
-            $data['cron'] = "<br /><b>Please make sure you have this cronJob in your Hosting CronJob List <br />
-<pre style='color:red'>0 */3 * * * /usr/bin/php -q ".$dir."/index.php --csv retargeting-cron > ".$dir."/rtg.cron.log</pre></b>";
-        } else {
-            $data['cron'] = "";
-        }
-
         /*
          * Common admin area items
          */
@@ -187,6 +179,13 @@ class ControllerExtensionModuleRetargeting extends Controller {
         }
 
         $data['site_url'] = $protocol.$_SERVER['HTTP_HOST'];
+        if ($data['module_retargeting_cron'] == 1) {
+            $dir = dirname(DIR_APPLICATION);
+            $data['cron'] = "<br /><b>Please make sure you have this cronJob in your Hosting CronJob List <br />
+<pre style='color:red'>0 */3 * * * curl --silent {$data['site_url']}/?csv=retargeting-cron </pre></b>";
+        } else {
+            $data['cron'] = "";
+        }
 
         $this->response->setOutput($this->load->view('extension/module/retargeting', $data));
     }
