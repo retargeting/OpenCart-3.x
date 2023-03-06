@@ -36,7 +36,8 @@ class Configs
         $models = ['checkout/order', 'setting/setting', 'design/layout', 'catalog/category', 'catalog/manufacturer', 'catalog/product', 'catalog/information'];
 
         $this->getModelsToLoad($models);
-
+        
+        $data['status']                   = (bool) $this->instanceOfThis->config->get('module_retargeting_status');
         $data['api_key_field']            = $this->instanceOfThis->config->get('module_retargeting_apikey');
         $data['api_secret_field']         = $this->instanceOfThis->config->get('module_retargeting_token');
         $data['retargeting_setEmail']     = htmlspecialchars_decode($this->instanceOfThis->config->get('module_retargeting_setEmail'));

@@ -1,12 +1,4 @@
 <?php
-/*
-if(isset($_GET['csv']) && $_GET['csv'] === 'retargeting')
-{
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
-    error_reporting(E_ALL);
-}
-*/
 use RetargetingSDK\Helpers\UrlHelper;
 
 $lim = (substr(DIR_SYSTEM, -1) === '/' ? '' : '/');
@@ -20,6 +12,97 @@ require_once DIR_SYSTEM . $lim . 'library/retargeting/vendor/autoload.php';
  */
 class ControllerExtensionModuleRetargeting extends Controller
 {
+    /* Rec Engine */
+    private static $ins;
+
+    public static $prefix = 'module_retargeting_';
+
+    private static $rec_engine = array(
+        "" => "home_page",
+        "common/home" => "home_page",
+        "checkout/success" => "thank_you_page", /* Importanta Ordinea checkout_onepage_success */
+
+        "checkout/cart" => "shopping_cart",
+        "checkout/checkout" => "shopping_cart",
+
+        "product/category" => "category_page",
+        "product/manufacturer/info" => "category_page",
+
+        "product/product" => "product_page",
+
+        "product/search" => "search_page",
+        "error/not_found" => "page_404"
+    );
+
+    public static function recstatus() {
+        return (bool) self::cfg();
+    }
+
+    public static function apistatus() {
+        return (bool) self::$ins->config->get(self::$prefix.'status');
+    }
+    
+    public static function cfg($key = 'rec_status') {
+        $v = self::$ins->config->get(self::$prefix.$key);
+
+        if (is_array($v)) {
+            foreach($v as $k=>$vv) {
+                $v[$k]['value'] = html_entity_decode($vv['value']);
+            }
+        }
+
+        return $v;
+    }
+
+    private static function is404() {
+        $route = isset(self::$ins->request->get['route']) ? self::$ins->request->get['route'] : 'common/home';
+        $controllerPath = DIR_APPLICATION . 'controller/' . str_replace(array('../', '..\\', '..'), '', $route) . '.php';
+
+        if (!is_file($controllerPath)) {
+            return true;
+        }
+        return false;
+    }
+
+    public static function rec_engine_load($ActionName = null) {
+
+        $ActionName = self::$ins->getCurrentPage();
+        $ActionName = $ActionName === false ? 'common/home' : $ActionName;
+
+        if (self::apistatus() && self::recstatus()) {
+            //$ActionName = self::$_req->getFullActionName();
+            if (isset(self::$rec_engine[$ActionName]) || self::is404()) {
+
+                if (!isset(self::$rec_engine[$ActionName])) {
+                    $ActionName = 'error/not_found';
+                }
+
+                return '
+                var _ra_rec_engine = {};
+    
+                _ra_rec_engine.init = function () {
+                    let list = this.list;
+                    for (let key in list) {
+                        _ra_rec_engine.insert(list[key].value, list[key].selector, list[key].place);
+                    }
+                };
+    
+                _ra_rec_engine.insert = function (code = "", selector = null, place = "before") {
+                    if (code !== "" && selector !== null) {
+                        let newTag = document.createRange().createContextualFragment(code);
+                        let content = document.querySelector(selector);
+    
+                        content.parentNode.insertBefore(newTag, place === "before" ? content : content.nextSibling);
+                    }
+                };
+                _ra_rec_engine.list = '.json_encode(self::cfg(self::$rec_engine[$ActionName])).';
+                _ra_rec_engine.init();';
+            }
+        }
+        /* console.log('".$ActionName."','RTGMAP'); */
+        return "";
+    }
+    /* Rec Engine END */
 
     /**
      * @return mixed
@@ -53,7 +136,7 @@ class ControllerExtensionModuleRetargeting extends Controller
                 if($_GET['csv'] === 'retargeting') {
                     $this->getProductsFeed($start, $limit);
                 } else if($_GET['csv'] === 'retargeting-cron') {
-                    if ($this->config->get('module_retargeting_cron') == 1) {
+                    if ($this->config->get(self::$prefix.'cron') == 1) {
                         $this->getProductsFeed($start, $limit, true);
                     } else {
                         header('Content-Type: application/json');
@@ -71,7 +154,9 @@ class ControllerExtensionModuleRetargeting extends Controller
                     die();
                 } else if($_GET['csv'] === 'retargeting-data' && isset($_GET['key']) && $data['api_secret_field'] === $_GET['key']) {
                     $dir = dirname(DIR_APPLICATION);
+
                     $data['cron'] = "0 */3 * * * /usr/bin/php -q ".$dir."/index.php --csv retargeting-cron > ".$dir."/rtg.cron.log";
+                    $data['cron2'] = "0 */3 * * * curl --silent ".HTTPS_SERVER."?csv=retargeting-cron > ".$dir."/rtg.cron.log";
 
                     header('Content-Type: application/json');
                     echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
@@ -136,14 +221,18 @@ class ControllerExtensionModuleRetargeting extends Controller
         $data['wishlist']         = !empty($this->session->data['wishlist']) ? $this->session->data['wishlist'] : false;
 
         // Recommendation engine
-        $data['rec_eng_output'] = $this->getRecommendationEngineOutput();
+        // $data['rec_eng_output'] = $this->getRecommendationEngineOutput();
 
         if (isset($this->session->data['order_id'])) {
             setcookie("retargeting_save_order", $this->session->data['order_id'], time()+3600);
         }
         
+        if (!$data['status']) {
+            return '';
+        }
+        
         //Populating JS
-        $data['js_output']        = (
+        $data['js_output'] = (
             new JS($this,
                 $this->getCurrentPage(),
                 $this->getCurrentCategory(),
@@ -151,14 +240,40 @@ class ControllerExtensionModuleRetargeting extends Controller
                 $this->getProductId()
             )
         )->getMainJs();
+        
+        /* Rec Engine */
+        self::$ins = $this;
+        $rec_engine = self::recstatus() ? '<script type="text/javascript">'.self::rec_engine_load().'</script>' : '';
+        /* Rec Engine END */
 
-        if (file_exists(DIR_TEMPLATE . $this->config->get('config_template') . 'extension/module/retargeting.twig'))
-        {
-            return $this->load->view($this->config->get('config_template') . 'extension/module/retargeting.twig', $data);
+        return '<script type="text/javascript">
+        /* --- Retargeting Tracking Code --- */
+        (function() {
+        ra_key = "'.$data['api_key_field'].'";
+        ra_params = {
+          add_to_cart_button_id: "'.$data['retargeting_addToCart'].'",
+          price_label_id: "price_label_id",
+        };
+
+        var ra = document.createElement("script"); ra.type ="text/javascript"; ra.async = true;
+
+        ra.addEventListener("load", function(event) {
+          console.log("⚡ RTG loaded ⚡");
+          StartRTG();
+        });
+
+        ra.src = ("https:" ==
+        document.location.protocol ? "https://" : "http://") + "tracking.retargeting.biz/v3/rajs/" + ra_key + ".js";
+        var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ra,s);})();
+        function StartRTG(){
+          if(_ra === undefined) {
+              _ra = _ra || {};
+          }
+          '.$data['js_output'].'
         }
-        else {
-            return $this->load->view('extension/module/retargeting', $data);
-        }
+        </script>'.$rec_engine;
+
+
     }
 
     /**
@@ -256,7 +371,7 @@ class ControllerExtensionModuleRetargeting extends Controller
         ini_set("display_errors", "on");
         error_reporting(E_ALL); 
 
-        $defStock = empty($this->config->get('module_retargeting_stock')) ? 0 : $this->config->get('module_retargeting_stock');
+        $defStock = empty($this->config->get(self::$prefix.'stock')) ? 0 : $this->config->get(self::$prefix.'stock');
 
         $params = [
             'start' => $start,

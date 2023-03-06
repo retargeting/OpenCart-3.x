@@ -12,6 +12,129 @@ class ControllerExtensionModuleRetargeting extends Controller {
 
     private $error = array();
 
+    public static $siteURL = null;
+    public static $prefix = 'module_retargeting_';
+
+    private static $configLable = array(
+        'status' => array(
+            'label' => 'Status',
+            'type' => 'select'
+        ),
+        'apikey'  => array(
+            'label' => 'Tracking API Key',
+            'type' => 'text',
+            'error' => 'code'
+        ),
+        'token'=> array(
+            'label' => 'REST API Key',
+            'type' => 'text'
+        ),
+        'layouts'=> array(
+            'label' => 'Assigned Layouts',
+            'type' => 'layouts'
+        ),
+        
+        'setEmail'=> array(
+            'label' => 'Email input',
+            'type' => 'text',
+            'description' => 'Email input query selector.',
+            'placeholder' => "input[type='text']"
+        ),
+        'addToCart'=> array(
+            'label' => 'Cart Button',
+            'type' => 'text',
+            'description' => 'Cart button query selector.',
+            'placeholder'=>"#button-cart"
+        ),
+        'clickImage'=> array(
+            'label' => 'Product Image',
+            'type' => 'text',
+            'description' => 'Main product image container query selector.',
+            'placeholder'=>'a.thumbnail'
+        ),
+        'stock'=> array(
+            'label' => 'Default Stock Status',
+            'type' => 'select',
+            'description' => 'Default stock Status if is negative quantity like "-1"',
+            'option' => array(
+                0 => 'Out of Stock',
+                1 => 'In Stock'
+            )
+        ),
+        'cron' => array(
+            'label' => 'Static Feed',
+            'type' => 'select',
+            'description' => '<b>Set "Yes" to generate static Feed every 3 Hours - {{ site_url }}/retargeting.csv</b>{{ cron }}'
+        ),
+        'rec_status' => array(
+            'label' => 'Recommendation Engine',
+            'type' => 'select',
+            'description' => 'If active, please add Div from RTG down below'
+        )
+    );
+
+    private static $option = array(
+        0 => 'Disabled',
+        1 => 'Enabled'
+    );
+    /* TODO: RecEngine */
+    private static $def = array(
+        "value" => "",
+        "selector" => "#content .row",
+        "place" => "after"
+    );
+
+    private static $blocks = array(
+        'block_1' => array(
+            'title' => 'Block 1',
+            'def_rtg' => array(
+                "value"=>"",
+                "selector"=>"#content .row",
+                "place"=>"before"
+            )
+        ),
+        'block_2' => array(
+            'title' => 'Block 2',
+        ),
+        'block_3' => array(
+            'title' => 'Block 3'
+        ),
+        'block_4' => array(
+            'title' => 'Block 4'
+        )
+    );
+
+    private static $fields = [
+        'home_page' => array(
+            'title' => 'Home Page',
+            'type'  => 'rec_engine'
+        ),
+        'category_page' => array(
+            'title' => 'Category Page',
+            'type'  => 'rec_engine'
+        ),
+        'product_page' => array(
+            'title' => 'Product Page',
+            'type'  => 'rec_engine'
+        ),
+        'shopping_cart' => array(
+            'title' => 'Shopping Cart',
+            'type'  => 'rec_engine'
+        ),
+        'thank_you_page' => array(
+            'title' => 'Thank you Page',
+            'type'  => 'rec_engine'
+        ),
+        'search_page' => array(
+            'title' => 'Search Page',
+            'type'  => 'rec_engine'
+        ),
+        'page_404' => array(
+            'title' => 'Page 404',
+            'type'  => 'rec_engine'
+        )
+    ];
+
     /**
      * ControllerExtensionModuleRetargeting constructor.
      * @param $registry
@@ -41,7 +164,13 @@ class ControllerExtensionModuleRetargeting extends Controller {
         $this->load->model('localisation/language');
         $this->load->model('design/layout');
 
-        $this->document->setTitle($this->language->get('heading_title'));
+        $title = $this->language->get('heading_title');
+
+        $cancel = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true);
+
+        $action = $this->url->link('extension/module/retargeting', 'user_token=' . $this->session->data['user_token'], true);
+
+        $this->document->setTitle($title);
 
         $data['languages'] = $this->model_localisation_language->getLanguages();
         $data['layouts']   = $this->model_design_layout->getLayouts();
@@ -54,38 +183,9 @@ class ControllerExtensionModuleRetargeting extends Controller {
 
             $this->session->data['success'] = $this->language->get('text_success');
 
-            $this->response->redirect($this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true));
+            $this->response->redirect($action);
         }
-
-        /* Translated strings */
-        $data['heading_title']     = $this->language->get('heading_title');
-        $data['text_edit']         = $this->language->get('text_edit');
-        $data['text_enabled']      = $this->language->get('text_enabled');
-        $data['text_disabled']     = $this->language->get('text_disabled');
-        $data['text_token']        = $this->language->get('text_token');
-        $data['entry_status']      = $this->language->get('entry_status');
-        $data['entry_apikey']      = $this->language->get('entry_apikey');
-        $data['entry_token']       = $this->language->get('entry_token');
-        $data['entry_email']       = $this->language->get('entry_email');
-        $data['entry_cart_button'] = $this->language->get('entry_cart_button');
-        $data['entry_image']       = $this->language->get('entry_image');
-        $data['button_save']       = $this->language->get('button_save');
-        $data['button_cancel']     = $this->language->get('button_cancel');
-
-        /*
-         * Populate the errors array
-         */
-        if (isset($this->error['warning'])) {
-            $data['error_warning'] = $this->error['warning'];
-        } else {
-            $data['error_warning'] = '';
-        }
-
-        if (isset($thi->error['code'])) {
-            $data['error_code'] = $this->error['code'];
-        } else {
-            $data['error_code'] = '';
-        }
+        // https://retargeting.app/en/settings/account/tracking-keys
 
         $data['breadcrumbs'] = array();
 
@@ -96,98 +196,211 @@ class ControllerExtensionModuleRetargeting extends Controller {
 
         $data['breadcrumbs'][] = array(
             'text' => $this->language->get('text_extension'),
-            'href' => $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true)
+            'href' => $cancel
         );
 
         $data['breadcrumbs'][] = array(
-            'text' => $this->language->get('heading_title'),
-            'href' => $this->url->link('extension/module/retargeting', 'user_token=' . $this->session->data['user_token'], true)
+            'text' => $title,
+            'href' => $action
         );
 
-        $data['action'] = $this->url->link('extension/module/retargeting', 'user_token=' . $this->session->data['user_token'], true);
-
-        $data['cancel'] = $this->url->link('marketplace/extension', 'user_token=' . $this->session->data['user_token'] . '&type=module', true);
+        $data['action'] = $action;
 
         $data['user_token'] = $this->session->data['user_token'];
 
-        /*
-         * Populate custom variables
-         */
-        if (isset($this->request->post['module_retargeting_status'])) {
-            $data['module_retargeting_status'] = $this->request->post['module_retargeting_status'];
-        } else {
-            $data['module_retargeting_status'] = $this->config->get('module_retargeting_status');
+        $form = array();
+        foreach (self::$configLable as $key=>$value) {
+            $key = self::$prefix.$key;
+            if ($key !== self::$prefix.'layouts' ) {
+                $data[$key] = isset($this->request->post[$key]) ? $this->request->post[$key] : $this->config->get($key);
+            }
+            
+            if (empty($data[$key]) && isset($value['placeholder'])) {
+                $data[$key] = $value['placeholder'];
+            }
+
+            $err = '';
+
+            if (isset($value['error']) && isset($this->error[$value['error']])) { $err = '<div class="text-danger">'.$this->error[$value['error']].'</div>'; }
+
+            $desc = isset($value['description']) ? '<span class="small">'.$value['description'].'</span>' : '';
+            switch ($value['type']) {
+                case 'select':
+                    $input = '<div class="col-sm-10">
+                    <select name="'.$key.'" id="input-status" class="form-control">';
+                    $option = (isset($value['option']) ? $value['option'] : self::$option);
+
+                    foreach ($option as $key1=>$value1) {
+                        $input .= '<option value="'.$key1.'"'.
+                        ( $data[$key] == $key1 ? ' selected="selected"' : '' ).
+                        '>'.$value1.'</option>';
+                    }
+                    
+                    $input .= '</select>'.$desc.$err.'</div>';
+                    break;
+                case 'layouts':
+                    $input = '<div class="col-sm-10">';
+                    foreach ($data['layouts'] as $key1=>$value1) {
+                        $input .= '<span class="label label-default" style="margin-left:1px" name="'.$value1['name'].'">'.$value1['name'].'</span>';
+                    }
+                    
+                    $input .= $desc.$err.'</div>';
+
+                break;
+                default:
+                    $input = '<div class="col-sm-10"><input type="text" name="'.$key.'" value="'.$data[$key].'" placeholder="'.$value['label'].'" id="input_'.$key.'" class="form-control" />'.$desc.$err.'</div>';
+            }
+
+            $form[] = '<div class="form-group">
+            <label class="col-sm-2 control-label" for="input_'.$key.'">'.$value['label'].'</label>
+            '.$input.'
+        </div>';
         }
 
-        if (isset($this->request->post['module_retargeting_apikey'])) {
-            $data['module_retargeting_apikey'] = $this->request->post['module_retargeting_apikey'];
-        } else {
-            $data['module_retargeting_apikey'] = $this->config->get('module_retargeting_apikey');
-        }
+        $form[] = '</div>
+        <div class="panel-heading">
+            <h3>Recommendation Engine</h3>
+        </div>
+        <div class="panel-body">';
 
-        if (isset($this->request->post['module_retargeting_token'])) {
-            $data['module_retargeting_token'] = $this->request->post['module_retargeting_token'];
-        } else {
-            $data['module_retargeting_token'] = $this->config->get('module_retargeting_token');
-        }
+        foreach (self::$fields as $row=>$selected) {
+            $key = self::$prefix.$row;
 
-        /* 1. setEmail */
-        if (isset($this->request->post['module_retargeting_setEmail'])) {
-            $data['module_retargeting_setEmail'] = $this->request->post['module_retargeting_setEmail'];
-        } else {
-            $data['module_retargeting_setEmail'] = $this->config->get('module_retargeting_setEmail');
-        }
+            $value = isset($this->request->post[$key]) ? $this->request->post[$key] : $this->config->get($key);
+            
+            $form[] = '<div class="form-group">
+            <label class="col-sm-2 control-label" for="input_'.$row.'">'.$selected['title'].'</label>
+            <div class="col-sm-10">';
+            
+            foreach (self::$blocks as $k=>$v) {
+                if (empty($value[$k]['value']) && empty($value[$k]['selector'])) {
+                    $def = isset($v['def_rtg']) ?
+                        $v['def_rtg'] : (isset($selected['def_rtg']) ? $selected['def_rtg'] : null);
+    
+                    $value[$k] = $def !== null ? $def : self::$def;
+                }
+    
+                $form[] = '<label for="'.$row.'_'.$k.'">
+                <strong>'.$v['title'].'</strong>
+                </label>';
+                $form[] = '<br /><textarea style="min-width: 50%; height: 75px;" class="form-control"'.
+                        ' id="'.$row.'_'.$k.'" name="'.$key.'['.$k.'][value]" spellcheck="false">'.
+                        $value[$k]['value'].'</textarea>'."\n";
+    
+                $form[] = '<p><span><strong>'.
+                '<a href="javascript:void(0);" onclick="document.querySelectorAll(\'#'.$row.'_advace\').forEach((e)=>{e.style.display=e.style.display===\'none\'?\'block\':\'none\';});">'.
+                'Show/Hide Advance</a></strong></span></p>';
+    
+                $form[] = '<span id="'.$row.'_advace" style="display:none" >'.
+                        '<input style="width:69.5%;display:inline;" class="form-control"'.
+                        ' id="" type="text" name="'.$key.'['.$k.'][selector]" '.
+                        'value="'.$value[$k]['selector'].'" />'."\n";
+    
+                $form[] = '<select style="width:30%;display:inline;" class="form-control" id="" name="'.$key.'['.$k.'][place]">'."\n";
+    
+                foreach (['before', 'after'] as $v)
+                {
+                    $form[] = '<option value="'.$v.'"'.($value[$k]['place'] === $v ? ' selected="selected"' : '' );
+                    $form[] = '>'.$v.'</option>'."\n";  
+                }
+    
+                $form[] = '</select></span><br />'."\n";
+            }
 
-        /* 2. addToCart */
-        if (isset($this->request->post['module_retargeting_addToCart'])) {
-            $data['module_retargeting_addToCart'] = $this->request->post['module_retargeting_addToCart'];
-        } else {
-            $data['module_retargeting_addToCart'] = $this->config->get('module_retargeting_addToCart');
-        }
-
-        /* 3. clickImage */
-        if (isset($this->request->post['module_retargeting_clickImage'])) {
-            $data['module_retargeting_clickImage'] = $this->request->post['module_retargeting_clickImage'];
-        } else {
-            $data['module_retargeting_clickImage'] = $this->config->get('module_retargeting_clickImage');
-        }
-        /* 4. stock */
-        if (isset($this->request->post['module_retargeting_stock'])) {
-            $data['module_retargeting_stock'] = $this->request->post['module_retargeting_stock'];
-        } else {
-            $data['module_retargeting_stock'] = $this->config->get('module_retargeting_stock');
-        }
-        /* 5. cron */
-        if (isset($this->request->post['module_retargeting_cron'])) {
-            $data['module_retargeting_cron'] = $this->request->post['module_retargeting_cron'];
-        } else {
-            $data['module_retargeting_cron'] = $this->config->get('module_retargeting_cron');
+            $form[] = '</div></div>';
         }
 
         /*
          * Common admin area items
          */
-        $data['header']      = $this->load->controller('common/header');
-        $data['column_left'] = $this->load->controller('common/column_left');
-        $data['footer']      = $this->load->controller('common/footer');
 
-        if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1) ||
-            isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
-            $protocol = 'https://';
-        } else {
-            $protocol = 'http://';
+        $breadcrumb = array();
+        
+
+        foreach ($data['breadcrumbs'] as $key=>$value) {
+            $breadcrumb[] = '<li><a href="'.$value['href'].'">'.$value['text'].'</a></li>';   
         }
 
-        $data['site_url'] = $protocol.$_SERVER['HTTP_HOST'];
-        if ($data['module_retargeting_cron'] == 1) {
-            $dir = dirname(DIR_APPLICATION);
+        $warning = isset($this->error['warning']) ? 
+        '<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> '.$this->error['warning'].'
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+        </div>' : '';
+
+
+        if (isset($this->session->data['success'])) {
+			$success = '<div class="alert alert-success alert-dismissible"><i class="fa fa-check-circle"></i> '.$this->session->data['success'].'
+            <button type="button" class="close" data-dismiss="alert">&times;</button></div>';
+
+			unset($this->session->data['success']);
+		} else {
+			$success = '';
+		}
+        
+        /* <h1>'.$title.'</h1> */
+        $html = $this->load->controller('common/header').$this->load->controller('common/column_left').
+        '<div id="content">
+            <div class="page-header">
+                <div class="container-fluid">
+                    <div class="pull-right">
+                        <button type="submit" form="form-retargeting" data-toggle="tooltip" title="'.$this->language->get('button_save').'" class="btn btn-primary"><i class="fa fa-save"></i></button>
+                        <a href="'.$cancel.'" data-toggle="tooltip" title="'.$this->language->get('button_cancel').'" class="btn btn-default"><i class="fa fa-reply"></i></a>
+                    </div>
+                    <ul class="breadcrumb">
+                        '.implode("\n",$breadcrumb).'
+                    </ul>
+                </div>
+            </div>
+            <div class="container-fluid">
+                '.$warning.$success.'
+                <div class="panel panel-default">
+                    <form action="'.$action.'" method="post" enctype="multipart/form-data" id="form-retargeting" class="form-horizontal">      
+                        <div class="panel-heading">
+                            <img src="https://retargeting.biz/img/logos/LOGO_retargeting.svg" class="img-responsive" style="height:40px;padding:5px;" alt="Retargeting Tracker" />
+                        </div>
+                        <div class="panel-body">
+                            <div class="alert alert-info"><i class="fa fa-info-circle"></i>
+                                Login to your <a href="https://retargeting.app/en/settings/account/tracking-keys" target="_blank" rel="noopener noreferrer"><u>Retargeting.Biz</u></a>
+                                account and copy paste the Tracking API and REST API keys into the fields below.
+                                <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            </div>
+                            '.implode("\n",$form).'
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>'.
+
+        $this->load->controller('common/footer');
+
+        if (isset($data[self::$prefix.'cron']) && $data[self::$prefix.'cron'] == 1) {
+            // $dir = dirname(DIR_APPLICATION);
             $data['cron'] = "<br /><b>Please make sure you have this cronJob in your Hosting CronJob List <br />
-<pre style='color:red'>0 */3 * * * curl --silent {$data['site_url']}/?csv=retargeting-cron </pre></b>";
+<pre style='color:red'>0 */3 * * * curl --silent {$this->getSiteUrl()}/?csv=retargeting-cron </pre></b>";
         } else {
             $data['cron'] = "";
         }
 
-        $this->response->setOutput($this->load->view('extension/module/retargeting', $data));
+        $this->response->setOutput(
+            str_replace(
+                array('{{ site_url }}', '{{ cron }}'),
+                array($this->getSiteUrl(),
+                $data['cron']
+            ), $html)
+        );
+    }
+
+    public function getSiteUrl() {
+        if (self::$siteURL === null) {
+            if (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] == 'on' || $_SERVER['HTTPS'] == 1) ||
+                isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https') {
+                $protocol = 'https://';
+            } else {
+                $protocol = 'http://';
+            }
+
+            self::$siteURL = $protocol.$_SERVER['HTTP_HOST'];
+        }
+        return self::$siteURL;
     }
 
     /**
@@ -248,7 +461,7 @@ class ControllerExtensionModuleRetargeting extends Controller {
         {
             $product_id = $this->request->get['product_id'];
             $baseUrl = $this->getBaseUrl();
-            $apiKey = $this->config->get('module_retargeting_token');
+            $apiKey = $this->config->get(self::$prefix.'token');
 
             $product_info = $this->model_catalog_product->getProduct($product_id);
 
@@ -284,7 +497,7 @@ class ControllerExtensionModuleRetargeting extends Controller {
 
             $product_id = (int)$data[0];
             $baseUrl = $this->getBaseUrl();
-            $apiKey = $this->config->get('module_retargeting_token');
+            $apiKey = $this->config->get(self::$prefix.'token');
 
             $product_info = $this->model_catalog_product->getProduct($product_id);
 
@@ -345,16 +558,16 @@ class ControllerExtensionModuleRetargeting extends Controller {
             $this->error['warning'] = $this->language->get('error_permission');
         }
 
-        if (!isset($this->request->post['module_retargeting_apikey']) || strlen(utf8_decode($this->request->post['module_retargeting_apikey'])) < 3) {
+        if (!isset($this->request->post[self::$prefix.'apikey']) || strlen(utf8_decode($this->request->post[self::$prefix.'apikey'])) < 3) {
             $this->error['warning'] = $this->language->get('error_apikey');
         }
 
-        if (!isset($this->request->post['module_retargeting_token']) || strlen(utf8_decode($this->request->post['module_retargeting_token'])) < 3) {
+        if (!isset($this->request->post[self::$prefix.'token']) || strlen(utf8_decode($this->request->post[self::$prefix.'token'])) < 3) {
             $this->error['warning'] = $this->language->get('error_token');
         }
 
-        if (!isset($this->request->post['module_retargeting_token']) || strlen(utf8_decode($this->request->post['module_retargeting_apikey'])) < 3 &&
-            !isset($this->request->post['module_retargeting_token']) || strlen(utf8_decode($this->request->post['module_retargeting_token'])) < 3) {
+        if (!isset($this->request->post[self::$prefix.'token']) || strlen(utf8_decode($this->request->post[self::$prefix.'apikey'])) < 3 &&
+            !isset($this->request->post[self::$prefix.'token']) || strlen(utf8_decode($this->request->post[self::$prefix.'token'])) < 3) {
             $this->error['warning'] = $this->language->get('error_code');
         }
 
