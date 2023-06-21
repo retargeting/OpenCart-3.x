@@ -455,7 +455,8 @@ class ControllerExtensionModuleRetargeting extends Controller
                 $extraData = [
                     'media_gallery' => [],
                     'variations' => [],
-                    'categories' => []
+                    'categories' => [],
+                    'product_weight'
                 ];
 
                 $productCategories = $this->model_catalog_product->getCategories($product['product_id']);
@@ -508,7 +509,7 @@ class ControllerExtensionModuleRetargeting extends Controller
                 $extraData = [
                     'media_gallery' => [],
                     'variations' => [],
-                    'categories' => []
+                    'categories' => [],
                 ];
 
                 $productCategories = $this->model_catalog_product->getCategories($product['product_id']);
@@ -548,6 +549,9 @@ class ControllerExtensionModuleRetargeting extends Controller
                     }
 
                 }
+
+                $extraData['product_weight'] = number_format($this->formatWeightToKg($this->getWeightClassForProduct($product),$product['weight']), 2, '.', '') > 0
+                    ? number_format($this->formatWeightToKg($this->getWeightClassForProduct($product),$product['weight']), 2, '.', '') : 0.01;
 
                 $setupProduct =  new \RetargetingSDK\Product();
                 $setupProduct->setId($product['product_id']);
@@ -595,6 +599,24 @@ class ControllerExtensionModuleRetargeting extends Controller
     }
     
     private $checkHTTP = null;
+
+    private function getWeightClassForProduct($product) {
+        $query = $this->db->query("SELECT unit FROM `" . DB_PREFIX . "weight_class_description` WHERE 
+                weight_class_id='".$product['weight_class_id']."'");
+
+        return $query->row['unit'];
+    }
+
+    private function formatWeightToKg($unit,$weight) {
+        if(strtoupper($unit) === "G") {
+            return $weight/1000;
+        }else if(strtoupper($unit) === 'LB') {
+            return $weight*0.45359237;
+        }else if(strtoupper($unit) === 'OZ') {
+            return $weight/35.27396195;
+        }
+        return $weight;
+    }
 
     public function fixURL($url)
     {
