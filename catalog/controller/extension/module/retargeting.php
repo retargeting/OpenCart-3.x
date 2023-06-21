@@ -550,9 +550,7 @@ class ControllerExtensionModuleRetargeting extends Controller
 
                 }
 
-                $extraData['product_weight'] = number_format($this->formatWeightToKg($this->getWeightClassForProduct($product),$product['weight']), 2, '.', '') > 0
-                    ? number_format($this->formatWeightToKg($this->getWeightClassForProduct($product),$product['weight']), 2, '.', '') : 0.01;
-
+                $extraData['product_weight'] = $this->getProductWeight($product);
                 $setupProduct =  new \RetargetingSDK\Product();
                 $setupProduct->setId($product['product_id']);
                 $setupProduct->setName($product['name']);
@@ -616,6 +614,11 @@ class ControllerExtensionModuleRetargeting extends Controller
             return $weight/35.27396195;
         }
         return $weight;
+    }
+
+    private function getProductWeight($product) {
+        return number_format($this->formatWeightToKg($this->getWeightClassForProduct($product),$product['weight']), 2, '.', '') > 0
+            ? number_format($this->formatWeightToKg($this->getWeightClassForProduct($product),$product['weight']), 2, '.', '') : 0.01;
     }
 
     public function fixURL($url)
